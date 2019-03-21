@@ -1,0 +1,127 @@
+---
+title: "Homework1"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Import data from yahoo finance
+install.packages("quantmod")
+
+# Import data from yahoo finance
+```{r, include = TRUE}
+rm(list=ls())
+library(quantmod)
+getSymbols("GOOG", auto.assign = TRUE)
+```
+# There are two primary time series data xts and zoo
+
+```{r}
+tickers = c("GOOG", "MSFT", "AMZN")
+getSymbols(tickers, from = "2010-01-01", auto.assign = TRUE)
+```
+# Download multiple prices to data variable
+
+```{r}
+data = new.env()
+getSymbols(tickers, from = "2010-01-01", env = data , auto.assign = TRUE)
+ls(data)
+names(data)
+head(data$AMZN)
+```
+```{r, include =TRUE}
+str(AMZN)
+class(AMZN)
+tail(AMZN,3)
+names(AMZN)
+ls(AMZN)
+head(AMZN$AMZN.Close)
+AMZN2010_15=AMZN['2010/2015']
+```
+### Extract closing price: Cl() 
+### Adjusted price: Ad()
+```{r}
+AMZN.ad<-Ad(AMZN)
+head(AMZN.ad)
+class(AMZN.ad)
+```
+# Write function to gather adjusted prices together
+```{r}
+firm3<-merge(Ad(AMZN), Ad(GOOG), Ad(MSFT))
+head(firm3)
+colnames(firm3)<-c("AMZN", "GOOG", "MSFG")
+head(firm3)
+```
+```{r}
+# Import data from .txt file
+etf4<-read.table("ETF4_2010_2018_d1_english.txt", header = T, sep = ',')
+str(etf4)
+```
+```{r}
+# convert CO_ID into character;
+etf4<-read.table("ETF4_2010_2018_d1_english.txt", header = T, sep = ',',
+                 colClasses = c("CO_ID" = "character"))
+str(etf4)
+head(etf4)
+write.csv(etf4, "etf4.csv")
+```
+install.packages("readr")
+```{r}
+library(readr)
+etf4_csv<-read.csv("etf4.csv")
+etf4_csv
+```
+#--------------------------
+# Clean data
+```{r}
+etf4.c<-etf4_csv[, c(-1,-3,-6)]
+etf4.c
+colnames(etf4.c)<-c("id", "date", "price")
+etf4.c
+```
+# Use pipe operator
+install.packages("magrittr")
+```{r}
+library(magrittr)
+```
+#install.packages("dplyr")
+install.packages("dplyr")
+```{r}
+library(dplyr)
+etf4.c<-etf4_csv%>%select(c(2,4,5))%>%rename("id" = "CO_ID", "date"= "Date", "price" = "Close")
+etf4.c
+```
+#-----------------------------------------------------------------              
+# Use dcast to reorder dataframe by date
+install.packages("reshape2")
+```{r}
+library(reshape2)
+etf4.reorder = dcast(etf4.c, date~id)
+dim(etf4.reorder)
+head(etf4.reorder)
+str(etf4.reorder)
+```
+# Convert into date format using as.Date()
+'''{r}
+etf4.reorder$date<-as.Date(as.character(etf4.reorder$date), "%Y%m%d") 
+head(etf4.reorder)
+str(etf4.reorder)
+'''
+# Convert character into numeric 
+# Convert to xts
+install.packages("xts")
+```{r}
+library(xts)
+etf4.xts<-xts(etf4.reorder[,-1], order.by = etf4.reorder$date)
+head(etf4.xts)
+tail(etf4.xts)
+str(etf4.xts)
+```
+# Convert into date format using as.Date()
+```{r}
+etf4.reorder$date<-as.Date(as.character(etf4.reorder$date), "%Y%m%d") 
+head(etf4.reorder)
+str(etf4.reorder)
+```
