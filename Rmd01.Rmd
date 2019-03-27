@@ -104,24 +104,214 @@ head(etf4.reorder)
 str(etf4.reorder)
 ```
 # Convert into date format using as.Date()
-'''{r}
-etf4.reorder$date<-as.Date(as.character(etf4.reorder$date), "%Y%m%d") 
-head(etf4.reorder)
-str(etf4.reorder)
-'''
-# Convert character into numeric 
-# Convert to xts
-install.packages("xts")
-```{r}
-library(xts)
-etf4.xts<-xts(etf4.reorder[,-1], order.by = etf4.reorder$date)
-head(etf4.xts)
-tail(etf4.xts)
-str(etf4.xts)
-```
-# Convert into date format using as.Date()
 ```{r}
 etf4.reorder$date<-as.Date(as.character(etf4.reorder$date), "%Y%m%d") 
 head(etf4.reorder)
 str(etf4.reorder)
 ```
+# You can save big file using saveRDS()
+```{r}
+etf4.xts2 <- readRDS("etf4.xts.rds")
+head(etf4.xts2)
+```
+##
+```{r}
+etf4.zoo <- read.zoo("myetf4.csv.1", header = TRUE, index.column =1, 
+                     sep = ",", format = "%Y-%m-%d")
+head(etf4.zoo)
+class(etf4.zoo)
+etf4.xts3<-as.xts(etf4.zoo)
+head(etf4.xts3)
+```
+#-----------------------------------------
+# Write function to compute returns
+install.packages('magrittr')
+```{r}
+library(magrittr)
+simple_returns01<-function(x) {
+      coredata(x[-1,])/coredata(x[-length(x),]) - 1 %>% 
+      na.omit()
+}
+head(simple_returns01(AMZN.ad))
+```
+# Or to keep the index of dates
+```{r}
+simple_returns02<-function(x) {
+  na.omit(x/lag(x) - 1)
+}
+head(simple_returns02(AMZN.ad))
+```
+#
+install.packages("PerformanceAnalytics")
+```{r}
+library(PerformanceAnalytics)
+head(na.omit(Return.calculate(firm3)))
+firm3.mon<-firm3 %>% to.monthly(indexAt = "lastof", OHLC=FALSE) %>% 
+                 Return.calculate()
+head(firm3.mon)
+```
+# We can also use package PMwR instead!
+install.packages("PMwR")
+```{r}
+library(PMwR)
+firm3.day<-returns(firm3, pad=0)
+head(firm3.day)
+firm3.mon1<-returns(firm3, period = "month")
+options(digits = 5)
+head(firm3.mon1)
+firm3.mon1
+head(merge(firm3, firm3.day))
+cum.ret<-cumprod(1+firm3.day)
+head(cum.ret)
+tail(cum.ret)
+```
+# Merge daily return and prices
+```{r}
+firm3.p.ret<-firm3.day %>% merge(firm3) 
+colnames(firm3.p.ret)<-c("AMZN_ret", "GOOG_ret", "MSFT_ret", 
+                         "AMZN_price", "GOOG_price", "MSFT_price")
+head(firm3.p.ret)
+```
+#============================================================
+# Plot in R
+# Reference:
+# https://blog.revolutionanalytics.com/2014/01/quantitative-finance-applications-in-r-plotting-xts-time-series.html
+#-------------------------------------------------------------
+# Using plot(.) in the zoo package
+```{r}
+plot(cum.ret)
+```
+#============================================================
+# Set a color scheme:
+```{r}
+tsRainbow <- rainbow(ncol(cum.ret))
+```
+# Plot the overlayed series
+```{r}
+plot(x = cum.ret, ylab = "Cumulative Return", main = "Cumulative Returns",
+     col = tsRainbow, screens = 1, lty = 1:3)
+```
+#============================================================
+# Set a legend in the upper left hand corner to match color to return series
+```{r}
+plot.new()
+plot(x = cum.ret, ylab = "Cumulative Return", main = "Cumulative Returns",
+     col = tsRainbow, screens = 1, lty = 1:3)
+legend(x = "topleft", legend = c("AMZN", "GOOG", "MSFT"), 
+       lty = 1:3,col = tsRainbow)
+```
+#============================================================
+# Use your own customized color set
+```{r}
+myColors <- c("red", "darkgreen", "goldenrod")
+plot(x = cum.ret, ylab = "Cumulative Return", main = "Cumulative Returns",
+     col = myColors, screens = 1, lty =1:3, lwd = 2)
+legend(x = "topleft", legend = c("AMZN", "GOOG", "MSFT"), 
+       lty = 1:3,col = myColors)
+```
+#---------------------------------------------------------------
+# Using plot(.) in the xts package
+# Reference: 
+# https://timelyportfolio.blogspot.com/2012/08/plotxts-is-wonderful.html
+#----------------------------------------------------------------
+```{r}
+cum.ret.xts<-as.xts(cum.ret)
+cum.ret.xts
+plot(cum.ret.xts, xlab = "Time", ylab = "Cumulative Return",
+     main = "Cumulative Returns", ylim = c(0.0, 16), 
+     major.ticks= "years",
+     minor.ticks = FALSE, col = myColors,
+     legend = c("AMZN", "GOOG", "MSFT"))
+```
+#============================================================
+# Not working by adding legend
+```{r}
+plot.xts(cum.ret.xts, lwd = 2, legend.loc = "topleft", auto.legend=TRUE,
+         main="Cumulative returns")
+```
+#---------------------------------------------------------------
+# Plot daily returns
+```{r}
+class(firm3.day)
+head(firm3.day)
+plot(firm3.day)
+```
+#============================================================
+```{r}
+x0 = index(firm3.day)
+y0 = coredata(firm3.day)
+plot(x0, y0[,1], type = "l")
+plot(index(firm3.day), firm3.day$AMZN, type = "l", 
+     main="Amazon daily returns", col.main="red", 
+     sub="201001-201903", col.sub="blue", 
+     xlab="date", ylab="Amazon daily returns",
+     col.lab="black", cex.lab=0.75)
+```
+# Plot xts object
+```{r}
+firm3.day %>% as.xts %>% 
+              plot
+axis(1, index(firm3.day), format(index(firm3.day), "%Y/%m"))
+```
+#============================================================
+```{r}
+firm3.day.xts <-as.xts(firm3.day)
+plot.xts(firm3.day.xts, auto.legend = TRUE)
+```
+# Plot the scatterplot of AMZN and MSFT
+# Convert xts into df 
+install.packages('ggplot2')
+install.packages("tidyverse")
+```{r}
+library(ggplot2)
+library(tidyverse)
+```
+
+# Convert xts into data frame which can be used by ggplot
+```{r}
+firm3_ret.df<-fortify(firm3.day, melt=TRUE)
+head(firm3_ret.df)
+```
+#-----------------------------------------------------------
+```{r}
+p<-ggplot(firm3_ret.df, aes(x = Index, y = Value))+
+  geom_line(aes(color = Series), size = 0.5)
+p
+p + scale_x_date(date_labels = "%Y/%m")
+```
+
+# Histogram distribution
+```{r}
+q<-firm3_ret.df %>%
+  ggplot(aes(x =Value, fill = Series)) +
+  geom_histogram(alpha = 0.45, binwidth = .005) +
+  ggtitle("Daily Returns")
+q
+q + facet_wrap(~Series)+ theme_update(plot.title = element_text(hjust = 0.5))
+```
+
+# Line distribution
+```{r}
+firm3_ret.df %>%
+  ggplot(aes(x = Value, colour = Series)) +
+  geom_density(alpha = 1) +
+  ggtitle("Daily Returns Density from 2010") +
+  xlab("daily returns") +
+  ylab("distribution") +
+  theme_update(plot.title = element_text(hjust = 0.5))
+```
+
+# Combine line and histogram together
+```{r}
+firm3_ret.df %>%
+  ggplot(aes(x = Value)) +
+  geom_density(aes(color = Series), alpha = 1) +
+  geom_histogram(aes(fill = Series), alpha = 0.45, binwidth = .01) +
+  guides(fill = FALSE) +
+  facet_wrap(~Series) +
+  ggtitle("Daily Returns from 2010") +
+  xlab("daily returns") +
+  ylab("distribution") +
+  theme_update(plot.title = element_text(hjust = 0.5))
+```
+

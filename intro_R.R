@@ -61,7 +61,7 @@ etf4.c<-etf4_csv%>%select(c(2,4,5))%>%rename("id" = "CO_ID", "date"= "Date", "pr
 etf4.c
 #-----------------------------------------------------------------                
 # use dcast to reorder dataframe by date;
-install.packages("reshape2")
+install.packages('reshape2')
 library(reshape2)
 etf4.reorder = dcast(etf4.c, date~id)
 dim(etf4.reorder)
@@ -73,7 +73,7 @@ head(etf4.reorder)
 str(etf4.reorder)
 # convert character into numeric 
 # convert to xts
-install.packages("xts")
+install.packages('xts')
 library(xts)
 etf4.xts<-xts(etf4.reorder[,-1], order.by = etf4.reorder$date)
 head(etf4.xts)
